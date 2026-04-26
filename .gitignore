@@ -1,4 +1,4 @@
 echo "node_modules/
 .env
 uploads/
-*.log" > .gitignore
+*.log" > .gitignore.env
