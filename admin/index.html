@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UniFind Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1e;--bg2:#111827;--card:#1a2235;--card2:#222f45;
+  --acc:#c9a227;--acc-l:#e8c56a;--acc-s:rgba(201,162,39,.12);
+  --txt:#e8eeff;--txt2:#8899bb;--txt3:#445566;
+  --bdr:rgba(255,255,255,.08);--red:#ef4444;--green:#22c55e;--blue:#3b82f6;
+  --sidebar:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--acc);border-radius:2px}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar);flex-shrink:0;background:var(--bg2);
+  border-right:1px solid var(--bdr);height:100vh;position:sticky;top:0;
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.sb-logo{padding:1.5rem 1.4rem;border-bottom:1px solid var(--bdr)}
+.sb-logo h1{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700}
+.sb-logo h1 span{color:var(--acc)}
+.sb-logo p{font-size:.7rem;color:var(--txt3);margin-top:.2rem;letter-spacing:1px;text-transform:uppercase}
+.sb-nav{flex:1;padding:.8rem 0}
+.sb-section{font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt3);padding:.6rem 1.4rem .3rem}
+.sb-item{
+  display:flex;align-items:center;gap:.75rem;padding:.62rem 1.4rem;
+  cursor:pointer;transition:all .2s;font-size:.86rem;color:var(--txt2);
+  border-left:2px solid transparent;
+}
+.sb-item:hover{background:rgba(255,255,255,.04);color:var(--txt)}
+.sb-item.active{background:var(--acc-s);color:var(--acc);border-left-color:var(--acc);font-weight:600}
+.sb-item .ico{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.sb-badge{background:var(--red);color:#fff;border-radius:100px;padding:1px 7px;font-size:.65rem;margin-left:auto}
+.sb-footer{padding:1rem 1.4rem;border-top:1px solid var(--bdr)}
+.sb-user{display:flex;align-items:center;gap:.7rem}
+.sb-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc-l));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#000;flex-shrink:0}
+.sb-name{font-size:.82rem;font-weight:600}
+.sb-role{font-size:.7rem;color:var(--acc)}
+.sb-logout{background:none;border:none;color:var(--txt3);font-size:.8rem;cursor:pointer;margin-left:auto;transition:color .2s}
+.sb-logout:hover{color:var(--red)}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;min-height:100vh}
+.topbar{
+  background:rgba(10,15,30,.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bdr);padding:.9rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+}
+.topbar h2{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:.8rem}
+.tb-input{background:var(--card);border:1px solid var(--bdr);border-radius:9px;padding:.45rem .9rem;color:var(--txt);font-size:.84rem;outline:none;transition:border-color .2s;width:220px}
+.tb-input:focus{border-color:var(--acc)}
+.tb-btn{background:var(--acc);border:none;border-radius:9px;padding:.45rem 1.1rem;color:#000;font-size:.84rem;font-weight:700;cursor:pointer;transition:all .2s}
+.tb-btn:hover{background:var(--acc-l)}
+.tb-btn.sec{background:rgba(255,255,255,.06);border:1px solid var(--bdr);color:var(--txt)}
+.tb-btn.sec:hover{border-color:var(--acc);color:var(--acc)}
+
+/* ── VIEWS ── */
+.view{display:none;padding:2rem;animation:fadeIn .25s both}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── STAT CARDS ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem}
+.stat-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:1.3rem 1.4rem;position:relative;overflow:hidden;transition:all .25s}
+.stat-card:hover{border-color:rgba(201,162,39,.25);transform:translateY(-2px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--acc),transparent);opacity:0;transition:opacity .3s}
+.stat-card:hover::before{opacity:1}
+.sc-ico{font-size:1.4rem;margin-bottom:.6rem}
+.sc-num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--acc)}
+.sc-lbl{font-size:.78rem;color:var(--txt2);margin-top:.1rem}
+.sc-delta{font-size:.72rem;margin-top:.3rem}
+.sc-delta.up{color:var(--green)}
+.sc-delta.dn{color:var(--red)}
+
+/* ── TABLES ── */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;margin-bottom:1.5rem}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.4rem;border-bottom:1px solid var(--bdr)}
+.card-head h3{font-size:.95rem;font-weight:700}
+.card-body{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:600px}
+th{text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);padding:.75rem 1rem;background:var(--bg2);border-bottom:1px solid var(--bdr)}
+td{padding:.8rem 1rem;font-size:.84rem;border-bottom:1px solid var(--bdr)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;padding:.18rem .55rem;border-radius:5px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.b-state{background:rgba(59,130,246,.14);color:#60a5fa}
+.b-private{background:var(--acc-s);color:var(--acc)}
+.b-intl{background:rgba(52,211,153,.14);color:#34d399}
+.b-admin{background:rgba(239,68,68,.14);color:var(--red)}
+.b-student{background:rgba(59,130,246,.14);color:#60a5fa}
+.b-active{background:rgba(34,197,94,.14);color:var(--green)}
+.b-inactive{background:rgba(239,68,68,.14);color:var(--red)}
+.b-pending{background:rgba(251,191,36,.14);color:#fbbf24}
+.b-approved{background:rgba(34,197,94,.14);color:var(--green)}
+.action-btn{background:none;border:1px solid var(--bdr);border-radius:6px;padding:.25rem .65rem;font-size:.74rem;cursor:pointer;transition:all .2s;color:var(--txt2);font-family:'DM Sans',sans-serif}
+.action-btn:hover{border-color:var(--acc);color:var(--acc)}
+.action-btn.del:hover{border-color:var(--red);color:var(--red)}
+.action-btn.approve:hover{border-color:var(--green);color:var(--green)}
+.table-empty{text-align:center;padding:2.5rem;color:var(--txt3);font-size:.88rem}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:100;display:flex;align-items:center;justify-content:center;padding:1.5rem;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid rgba(255,255,255,.1);border-radius:18px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;transform:translateY(16px);transition:transform .25s;position:relative}
+.modal-bg.open .modal{transform:none}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:1.3rem 1.5rem;border-bottom:1px solid var(--bdr)}
+.modal-head h3{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700}
+.modal-close{background:none;border:none;color:var(--txt3);font-size:1.2rem;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--txt)}
+.modal-body{padding:1.5rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.9rem}
+.form-row.full{grid-template-columns:1fr}
+.fg label{display:block;font-size:.72rem;font-weight:600;color:var(--txt3);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.3px}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg2);border:1px solid var(--bdr);border-radius:9px;padding:.65rem .9rem;color:var(--txt);font-size:.86rem;outline:none;transition:border-color .2s;font-family:'DM Sans',sans-serif}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--acc)}
+.fg textarea{min-height:80px;resize:vertical}
+.fg select option{background:var(--card)}
+.modal-foot{padding:1rem 1.5rem;border-top:1px solid var(--bdr);display:flex;justify-content:flex-end;gap:.7rem}
+
+/* ── LOGIN ── */
+#loginPage{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);background-image:radial-gradient(ellipse 60% 50% at 50% 0%,var(--acc-s),transparent 60%);
+  width:100%;
+}
+.login-box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:2.5rem;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.login-box h1{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;margin-bottom:.4rem}
+.login-box h1 span{color:var(--acc)}
+.login-box p{color:var(--txt2);font-size:.85rem;margin-bottom:1.8rem}
+.login-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:.7rem 1rem;font-size:.82rem;color:var(--red);margin-bottom:1rem;display:none}
+
+/* ── CHART ── */
+.chart-wrap{padding:1rem 1.4rem;min-height:200px;display:flex;align-items:flex-end;gap:4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-fill{width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--acc),rgba(201,162,39,.4));min-height:4px;transition:height .6s cubic-bezier(.4,0,.2,1)}
+.bar-lbl{font-size:.62rem;color:var(--txt3)}
+.bar-val{font-size:.65rem;color:var(--acc);font-weight:700}
+
+/* ── MISC ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.section-lbl{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc);margin-bottom:.5rem}
+.pagination{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:1rem}
+.pg-btn{background:var(--card2);border:1px solid var(--bdr);border-radius:7px;padding:.38rem .8rem;font-size:.8rem;cursor:pointer;color:var(--txt2);transition:all .2s}
+.pg-btn:hover,.pg-btn.on{background:var(--acc-s);border-color:var(--acc);color:var(--acc)}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--card2);border:1px solid var(--bdr);border-radius:12px;padding:.75rem 1.1rem;display:flex;align-items:center;gap:.6rem;font-size:.85rem;box-shadow:0 8px 32px rgba(0,0,0,.4);transform:translateY(80px);transition:transform .3s;z-index:200}
+.toast.show{transform:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+  <div class="login-box">
+    <h1>Uni<span>Find</span></h1>
+    <p>Admin Dashboard — Founder Access</p>
+    <div class="login-err" id="loginErr">Invalid email or password</div>
+    <div class="fg" style="margin-bottom:.9rem"><label>Email</label><input type="email" id="loginEmail" placeholder="admin@unifind.uz" value="admin@unifind.uz"></div>
+    <div class="fg" style="margin-bottom:1.2rem"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="tb-btn" style="width:100%;padding:.8rem;font-size:.95rem" onclick="doLogin()">Sign In to Admin Panel</button>
+    <p style="font-size:.73rem;color:var(--txt3);margin-top:1rem;text-align:center">Set credentials in your .env file</p>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp" style="display:none;width:100%;display:flex">
+
+<aside class="sidebar">
+  <div class="sb-logo">
+    <h1>Uni<span>Find</span></h1>
+    <p>Admin Panel</p>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">Main</div>
+    <div class="sb-item active" onclick="show('dashboard')"><span class="ico">📊</span>Dashboard</div>
+    <div class="sb-item" onclick="show('universities')"><span class="ico">🏛️</span>Universities</div>
+    <div class="sb-item" onclick="show('users')"><span class="ico">👥</span>Users</div>
+    <div class="sb-section">Content</div>
+    <div class="sb-item" onclick="show('reviews')"><span class="ico">⭐</span>Reviews <span class="sb-badge" id="pendingBadge">0</span></div>
+    <div class="sb-item" onclick="show('featured')"><span class="ico">💎</span>Featured</div>
+    <div class="sb-section">Analytics</div>
+    <div class="sb-item" onclick="show('analytics')"><span class="ico">📈</span>Analytics</div>
+    <div class="sb-section">System</div>
+    <div class="sb-item" onclick="show('api')"><span class="ico">🔌</span>API Docs</div>
+    <div class="sb-item" onclick="show('settings')"><span class="ico">⚙️</span>Settings</div>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-av" id="sbAv">A</div>
+      <div><div class="sb-name" id="sbName">Admin</div><div class="sb-role">Founder</div></div>
+      <button class="sb-logout" onclick="logout()">↩</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="pageTitle">Dashboard</h2>
+    <div class="topbar-right">
+      <input class="tb-input" id="globalSearch" placeholder="Search..." oninput="globalSearchFn(this.value)">
+      <button class="tb-btn sec" onclick="refreshView()">↻ Refresh</button>
+      <button class="tb-btn" id="topActionBtn" onclick="topAction()" style="display:none">+ Add</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card"><div class="sc-ico">👥</div><div class="sc-num" id="st-users">—</div><div class="sc-lbl">Total Students</div><div class="sc-delta up" id="st-users-d"></div></div>
+      <div class="stat-card"><div class="sc-ico">🏛️</div><div class="sc-num" id="st-unis">—</div><div class="sc-lbl">Universities</div></div>
+      <div class="stat-card"><div class="sc-ico">👁️</div><div class="sc-num" id="st-views">—</div><div class="sc-lbl">Page Views</div><div class="sc-delta up" id="st-views-d"></div></div>
+      <div class="stat-card"><div class="sc-ico">📊</div><div class="sc-num" id="st-dtm">—</div><div class="sc-lbl">DTM Searches</div></div>
+      <div class="stat-card"><div class="sc-ico">🔖</div><div class="sc-num" id="st-saved">—</div><div class="sc-lbl">Universities Saved</div></div>
+      <div class="stat-card"><div class="sc-ico">⭐</div><div class="sc-num" id="st-rev">—</div><div class="sc-lbl">Reviews (Pending)</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head"><h3>📈 Daily Views (14 days)</h3></div>
+        <div class="chart-wrap" id="viewsChart"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>🏆 Top Universities</h3></div>
+        <div id="topUnisTable"><div class="table-empty">Loading...</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>⭐ Pending Reviews</h3><button class="action-btn" onclick="show('reviews')">View all →</button></div>
+      <div class="card-body"><div id="pendingReviewsTable"><div class="table-empty">Loading...</div></div></div>
+    </div>
+  </div>
+
+  <!-- UNIVERSITIES -->
+  <div class="view" id="view-universities">
+    <div class="card">
+      <div class="card-head">
+        <h3>All Universities (<span id="uniCount">0</span>)</h3>
+        <button class="tb-btn" onclick="openAddUni()">+ Add University</button>
+      </div>
+      <div class="card-body">
+        <table><thead><tr><th>Name</th><th>Region</th><th>Type</th><th>DTM</th><th>Rating</th><th>Featured</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="uniTableBody"><tr><td colspan="8" class="table-empty">Loading...</td></tr></tbody></table>
+      </div>
+      <div class="pagination" id="uniPagination"></div>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div class="view" id="view-users">
+    <div class="card">
+      <div class="card-head"><h3>All Users (<span id="userCount">0</span>)</h3></div>
+      <div class="card-body">
+        <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody id="userTableBody"><tr><td colspan="7" class="table-empty">Loading...</td></tr></tbody></table>
+      </div>
+      <div class="pagination" id="userPagination"></div>
+    </div>
+  </div>
+
+  <!-- REVIEWS -->
+  <div class="view" id="view-reviews">
+    <div style="display:flex;gap:.7rem;margin-bottom:1.2rem">
+      <button class="tb-btn" id="revPendingBtn" onclick="loadReviews(false)">Pending</button>
+      <button class="tb-btn sec" id="revApprovedBtn" onclick="loadReviews(true)">Approved</button>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3 id="reviewsTitle">Pending Reviews</h3></div>
+      <div class="card-body">
+        <table><thead><tr><th>University</th><th>Reviewer</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="reviewTableBody"><tr><td colspan="6" class="table-empty">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURED -->
+  <div class="view" id="view-featured">
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-head"><h3>💎 Monetization — Featured Listings</h3></div>
+      <div class="card-body" style="padding:1.5rem">
+        <p style="color:var(--txt2);font-size:.88rem;margin-bottom:1.5rem">Charge universities for featured placement. Basic: $200/mo · Premium: $350/mo · Enterprise: $500/mo</p>
+        <div class="form-row">
+          <div class="fg"><label>University ID (UUID)</label><input id="fl-uid" placeholder="paste university id..."></div>
+          <div class="fg"><label>Plan</label><select id="fl-plan"><option value="basic">Basic — $200/mo</option><option value="premium">Premium — $350/mo</option><option value="enterprise">Enterprise — $500/mo</option></select></div>
+          <div class="fg"><label>Price (USD)</label><input id="fl-price" type="number" placeholder="200"></div>
+          <div class="fg"><label>Start Date</label><input id="fl-start" type="date"></div>
+          <div class="fg"><label>End Date</label><input id="fl-end" type="date"></div>
+        </div>
+        <button class="tb-btn" onclick="addFeatured()">+ Create Featured Listing</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Revenue Roadmap</h3></div>
+      <div style="padding:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:1.2rem"><div style="font-size:1.1rem;margin-bottom:.5rem">🏛️ Featured Listings</div><div style="font-size:.82rem;color:var(--txt2)">Charge universities $200-500/month to appear at top of search. <strong style="color:var(--acc)">10 unis = $2,000-5,000/mo</strong></div></div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:1.2rem"><div style="font-size:1.1rem;margin-bottom:.5rem">💰 Lead Fees</div><div style="font-size:.82rem;color:var(--txt2)">Charge $5-15 per student who clicks Apply Now. <strong style="color:var(--acc)">100 leads/day = $500-1,500/day</strong></div></div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:1.2rem"><div style="font-size:1.1rem;margin-bottom:.5rem">⭐ Student Premium</div><div style="font-size:.82rem;color:var(--txt2)">$3-5/month for saved unlimited + DTM advisor. <strong style="color:var(--acc)">1,000 subs = $3,000-5,000/mo</strong></div></div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:1.2rem"><div style="font-size:1.1rem;margin-bottom:.5rem">📊 Data & Analytics</div><div style="font-size:.82rem;color:var(--txt2)">Sell search trend reports to universities. <strong style="color:var(--acc)">$500-2,000 per report</strong></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div class="view" id="view-analytics">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head"><h3>🔍 Top DTM Search Subjects</h3></div>
+        <div id="dtmAnalytics"><div class="table-empty">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>🏆 Most Viewed Universities</h3></div>
+        <div id="topUnisAnalytics"><div class="table-empty">Loading...</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>📅 Traffic (14 days)</h3></div>
+      <div class="chart-wrap" id="analyticsChart"></div>
+    </div>
+  </div>
+
+  <!-- API DOCS -->
+  <div class="view" id="view-api">
+    <div class="card">
+      <div class="card-head"><h3>🔌 API Reference</h3></div>
+      <div style="padding:1.5rem;font-family:monospace;font-size:.84rem;line-height:2">
+        <div id="apiBase" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:9px;padding:.8rem 1rem;margin-bottom:1.2rem;font-size:.82rem;color:var(--acc)"></div>
+        ${[
+          ['POST','/api/auth/register','Register new user'],
+          ['POST','/api/auth/login','Login → returns JWT token'],
+          ['GET','/api/auth/me','Get current user (🔒 auth)'],
+          ['PATCH','/api/auth/me','Update profile (🔒 auth)'],
+          ['GET','/api/universities','List/search/filter universities'],
+          ['GET','/api/universities/featured','Featured universities'],
+          ['GET','/api/universities/dtm?score=165','DTM score matching'],
+          ['GET','/api/universities/:id','University detail + majors + reviews'],
+          ['POST','/api/universities/:id/reviews','Submit review (🔒 auth)'],
+          ['GET','/api/users/saved','Get saved universities (🔒 auth)'],
+          ['POST','/api/users/saved/:id','Save university (🔒 auth)'],
+          ['DELETE','/api/users/saved/:id','Unsave university (🔒 auth)'],
+          ['GET','/api/admin/stats','Dashboard stats (🛡️ admin)'],
+          ['GET','/api/admin/analytics','Analytics data (🛡️ admin)'],
+          ['GET','/api/admin/universities','All universities (🛡️ admin)'],
+          ['POST','/api/admin/universities','Create university (🛡️ admin)'],
+          ['PUT','/api/admin/universities/:id','Update university (🛡️ admin)'],
+          ['GET','/api/admin/users','All users (🛡️ admin)'],
+          ['PATCH','/api/admin/reviews/:id','Approve/reject review (🛡️ admin)'],
+          ['GET','/health','Server health check'],
+        ].map(([m,p,d])=>`
+          <div style="display:flex;gap:1rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--bdr)">
+            <span style="background:${m==='GET'?'rgba(59,130,246,.15)':m==='POST'?'rgba(34,197,94,.15)':m==='PUT'||m==='PATCH'?'rgba(251,191,36,.15)':'rgba(239,68,68,.15)'};color:${m==='GET'?'#60a5fa':m==='POST'?'#4ade80':m==='PUT'||m==='PATCH'?'#fbbf24':'#f87171'};padding:.15rem .6rem;border-radius:4px;font-size:.72rem;font-weight:700;min-width:60px;text-align:center">${m}</span>
+            <span style="color:var(--acc);min-width:280px">${p}</span>
+            <span style="color:var(--txt2);font-family:'DM Sans',sans-serif;font-size:.82rem">${d}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="view" id="view-settings">
+    <div class="card" style="max-width:500px">
+      <div class="card-head"><h3>⚙️ Admin Settings</h3></div>
+      <div style="padding:1.5rem">
+        <div style="margin-bottom:1.5rem">
+          <div class="section-lbl">API Base URL</div>
+          <input class="tb-input" id="settingsApiUrl" style="width:100%" value="http://localhost:5000">
+        </div>
+        <div style="margin-bottom:1.5rem">
+          <div class="section-lbl">Admin Token</div>
+          <input class="tb-input" id="settingsToken" style="width:100%" placeholder="Paste your JWT token here">
+          <div style="font-size:.73rem;color:var(--txt3);margin-top:.4rem">Or login above to auto-set</div>
+        </div>
+        <button class="tb-btn" onclick="saveSettings()">Save Settings</button>
+        <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--bdr)">
+          <div class="section-lbl">Quick Setup Commands</div>
+          <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:9px;padding:1rem;font-family:monospace;font-size:.8rem;line-height:2;color:var(--acc)">
+            npm install<br>
+            cp .env.example .env<br>
+            <span style="color:var(--txt3)"># Edit .env with your DB credentials</span><br>
+            node database/setup.js<br>
+            node database/seed.js<br>
+            npm run dev
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /adminApp -->
+
+<!-- ADD UNIVERSITY MODAL -->
+<div class="modal-bg" id="uniModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="uniModalTitle">Add University</h3><button class="modal-close" onclick="closeModal('uniModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><div class="fg"><label>Full Name</label><input id="u-name" placeholder="National University..."></div><div class="fg"><label>Short Name</label><input id="u-short" placeholder="NUUz"></div></div>
+      <div class="form-row"><div class="fg"><label>Region</label><select id="u-region"></select></div><div class="fg"><label>Type</label><select id="u-type"><option value="state">State</option><option value="private">Private</option><option value="international">International</option></select></div></div>
+      <div class="form-row"><div class="fg"><label>Website</label><input id="u-web" placeholder="https://..."></div><div class="fg"><label>Emoji</label><input id="u-emoji" placeholder="🏛️" maxlength="4"></div></div>
+      <div class="form-row"><div class="fg"><label>Min DTM Score</label><input id="u-dtm" type="number" placeholder="150"></div><div class="fg"><label>Established</label><input id="u-est" type="number" placeholder="1920"></div></div>
+      <div class="form-row"><div class="fg"><label>Tuition Min</label><input id="u-tmin" type="number" placeholder="8000000"></div><div class="fg"><label>Tuition Max</label><input id="u-tmax" type="number" placeholder="18000000"></div></div>
+      <div class="form-row"><div class="fg"><label>Currency</label><select id="u-currency"><option value="UZS">UZS</option><option value="USD">USD</option></select></div><div class="fg"><label>Programs Count</label><input id="u-progs" type="number" placeholder="50"></div></div>
+      <div class="form-row"><div class="fg"><label>Field</label><select id="u-field"><option value="economics">Economics/Business</option><option value="engineering">Engineering</option><option value="medicine">Medicine</option><option value="it">IT & Technology</option><option value="law">Law</option><option value="languages">Languages</option><option value="art">Art & Design</option><option value="agriculture">Agriculture</option></select></div><div class="fg"><label>Featured</label><select id="u-featured"><option value="false">No</option><option value="true">Yes</option></select></div></div>
+      <div class="form-row full"><div class="fg"><label>Description</label><textarea id="u-desc" placeholder="Brief description..."></textarea></div></div>
+    </div>
+    <div class="modal-foot"><button class="action-btn" onclick="closeModal('uniModal')">Cancel</button><button class="tb-btn" onclick="submitUni()">Save University</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastIco">✅</span> <span id="toastTxt"></span></div>
+
+<script>
+const API = localStorage.getItem('uf_admin_api') || 'http://localhost:5000';
+let token = localStorage.getItem('uf_admin_token') || '';
+let currentUniPage = 1, currentUserPage = 1;
+let editingUniId = null;
+
+// ── AUTH ──────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const pass  = document.getElementById('loginPass').value;
+  try {
+    const r = await api('POST', '/api/auth/login', { email, password: pass }, false);
+    if (r.user?.role !== 'admin') { showErr('Not an admin account'); return; }
+    token = r.token;
+    localStorage.setItem('uf_admin_token', token);
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('adminApp').style.display  = 'flex';
+    document.getElementById('sbName').textContent = r.user.name;
+    document.getElementById('sbAv').textContent   = r.user.name[0].toUpperCase();
+    initApp();
+  } catch(e) { showErr(e.message || 'Login failed'); }
+}
+function showErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg; el.style.display = 'block';
+}
+function logout() {
+  token = ''; localStorage.removeItem('uf_admin_token');
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('adminApp').style.display  = 'none';
+}
+
+// Check saved token
+if (token) {
+  document.getElementById('loginPage').style.display  = 'none';
+  document.getElementById('adminApp').style.display   = 'flex';
+  document.getElementById('settingsToken').value = token;
+  initApp();
+}
+
+// ── API HELPER ────────────────────────────────
+async function api(method, path, body, auth=true) {
+  const base = localStorage.getItem('uf_admin_api') || 'http://localhost:5000';
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth && token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(base + path, {
+    method, headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'API error');
+  return data;
+}
+
+// ── NAVIGATION ────────────────────────────────
+const titles = {
+  dashboard:'Dashboard', universities:'Universities', users:'Users',
+  reviews:'Reviews', featured:'Revenue & Featured', analytics:'Analytics',
+  api:'API Documentation', settings:'Settings'
+};
+const topActions = { universities: true };
+
+function show(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('view-'+view)?.classList.add('active');
+  document.querySelector(`.sb-item[onclick="show('${view}')"]`)?.classList.add('active');
+  document.getElementById('pageTitle').textContent = titles[view] || view;
+  const btn = document.getElementById('topActionBtn');
+  btn.style.display = topActions[view] ? '' : 'none';
+  document.getElementById('apiBase').textContent = `Base URL: ${localStorage.getItem('uf_admin_api')||'http://localhost:5000'}/api`;
+
+  if (view === 'universities') loadUniversities();
+  if (view === 'users')        loadUsers();
+  if (view === 'reviews')      loadReviews(false);
+  if (view === 'analytics')    loadAnalytics();
+}
+
+function topAction() { openAddUni(); }
+function refreshView() {
+  const active = document.querySelector('.view.active')?.id.replace('view-','');
+  if (active) show(active);
+}
+
+// ── INIT ──────────────────────────────────────
+async function initApp() {
+  try {
+    const s = await api('GET', '/api/admin/stats');
+    document.getElementById('st-users').textContent   = s.users.total.toLocaleString();
+    document.getElementById('st-unis').textContent    = s.universities.total;
+    document.getElementById('st-views').textContent   = s.views.total.toLocaleString();
+    document.getElementById('st-dtm').textContent     = s.dtm_searches.toLocaleString();
+    document.getElementById('st-saved').textContent   = s.saved_total.toLocaleString();
+    document.getElementById('st-rev').textContent     = s.reviews.pending;
+    document.getElementById('st-users-d').textContent = `+${s.users.week} this week`;
+    document.getElementById('st-views-d').textContent = `+${s.views.week} this week`;
+    document.getElementById('pendingBadge').textContent = s.reviews.pending;
+
+    const an = await api('GET', '/api/admin/analytics');
+    renderChart('viewsChart', an.daily, 'views');
+    renderTopUnis(an.topUnis);
+    loadReviewsPreview();
+  } catch(e) {
+    showToast('⚠️', 'Could not connect to API. Is the server running?');
+  }
+}
+
+// ── CHARTS ───────────────────────────────────
+function renderChart(id, data, key) {
+  const el = document.getElementById(id); if (!el) return;
+  if (!data?.length) { el.innerHTML = '<div style="width:100%;text-align:center;color:var(--txt3);align-self:center">No data yet</div>'; return; }
+  const max = Math.max(...data.map(d => +d[key]), 1);
+  el.innerHTML = data.map(d => `
+    <div class="bar-col">
+      <div class="bar-val">${d[key]}</div>
+      <div class="bar-fill" style="height:${Math.round(+d[key]/max*140)}px"></div>
+      <div class="bar-lbl">${new Date(d.date).toLocaleDateString('en',{month:'short',day:'numeric'})}</div>
+    </div>`).join('');
+}
+
+function renderTopUnis(data) {
+  const el = document.getElementById('topUnisTable'); if (!el) return;
+  if (!data?.length) { el.innerHTML = '<div class="table-empty">No data</div>'; return; }
+  el.innerHTML = `<table><thead><tr><th>#</th><th>University</th><th>Views (30d)</th></tr></thead><tbody>
+    ${data.map((u,i)=>`<tr><td style="color:var(--acc);font-weight:700">${i+1}</td><td>${u.name}</td><td>${u.views}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+// ── UNIVERSITIES ─────────────────────────────
+async function loadUniversities(page=1) {
+  currentUniPage = page;
+  const q = document.getElementById('globalSearch').value;
+  try {
+    const d = await api('GET', `/api/admin/universities?page=${page}&limit=20${q?`&q=${q}`:''}`);
+    document.getElementById('uniCount').textContent = d.total;
+    const tbody = document.getElementById('uniTableBody');
+    if (!d.data.length) { tbody.innerHTML = '<tr><td colspan="8" class="table-empty">No universities found</td></tr>'; return; }
+    tbody.innerHTML = d.data.map(u => `
+      <tr>
+        <td><div style="font-weight:600">${u.emoji} ${u.name}</div><div style="font-size:.72rem;color:var(--txt3)">${u.short_name||''}</div></td>
+        <td>${u.region_en||'—'}</td>
+        <td><span class="badge b-${u.type}">${u.type}</span></td>
+        <td style="color:var(--acc);font-weight:700">${u.dtm_min||'—'}</td>
+        <td>★ ${u.rating||'0.0'}</td>
+        <td>${u.is_featured?'<span class="badge b-private">Yes</span>':'—'}</td>
+        <td><span class="badge ${u.is_active?'b-active':'b-inactive'}">${u.is_active?'Active':'Hidden'}</span></td>
+        <td style="display:flex;gap:.4rem">
+          <button class="action-btn" onclick="editUni('${u.id}')">Edit</button>
+          <button class="action-btn del" onclick="toggleUni('${u.id}',${!u.is_active})">${u.is_active?'Hide':'Show'}</button>
+        </td>
+      </tr>`).join('');
+    renderPagination('uniPagination', Math.ceil(d.total/20), page, loadUniversities);
+  } catch(e) { showToast('❌', e.message); }
+}
+
+function renderPagination(id, pages, current, fn) {
+  const el = document.getElementById(id); if (!el || pages <= 1) { if(el)el.innerHTML=''; return; }
+  let html = '';
+  for (let i=1; i<=Math.min(pages,10); i++)
+    html += `<button class="pg-btn${i===current?' on':''}" onclick="${fn.name}(${i})">${i}</button>`;
+  el.innerHTML = html;
+}
+
+async function openAddUni() {
+  editingUniId = null;
+  document.getElementById('uniModalTitle').textContent = 'Add University';
+  ['u-name','u-short','u-web','u-emoji','u-dtm','u-est','u-tmin','u-tmax','u-progs','u-desc']
+    .forEach(id => document.getElementById(id).value = '');
+  await loadRegionOptions('u-region');
+  openModal('uniModal');
+}
+
+async function editUni(id) {
+  editingUniId = id;
+  document.getElementById('uniModalTitle').textContent = 'Edit University';
+  try {
+    const u = await api('GET', `/api/universities/${id}`);
+    document.getElementById('u-name').value    = u.name;
+    document.getElementById('u-short').value   = u.short_name||'';
+    document.getElementById('u-web').value     = u.website||'';
+    document.getElementById('u-emoji').value   = u.emoji||'';
+    document.getElementById('u-dtm').value     = u.dtm_min||'';
+    document.getElementById('u-est').value     = u.established||'';
+    document.getElementById('u-tmin').value    = u.tuition_min||'';
+    document.getElementById('u-tmax').value    = u.tuition_max||'';
+    document.getElementById('u-progs').value   = u.programs_count||'';
+    document.getElementById('u-desc').value    = u.description||'';
+    document.getElementById('u-type').value    = u.type;
+    document.getElementById('u-field').value   = u.field||'economics';
+    document.getElementById('u-featured').value = u.is_featured?'true':'false';
+    document.getElementById('u-currency').value = u.tuition_currency||'UZS';
+    await loadRegionOptions('u-region', u.region_id);
+    openModal('uniModal');
+  } catch(e) { showToast('❌', e.message); }
+}
+
+async function loadRegionOptions(selectId, selected) {
+  try {
+    const regions = await api('GET', '/api/admin/regions');
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = regions.map(r => `<option value="${r.id}"${r.id==selected?' selected':''}>${r.name_en}</option>`).join('');
+  } catch {}
+}
+
+async function submitUni() {
+  const body = {
+    name: document.getElementById('u-name').value,
+    short_name: document.getElementById('u-short').value,
+    region_id: document.getElementById('u-region').value,
+    type: document.getElementById('u-type').value,
+    emoji: document.getElementById('u-emoji').value || '🏛️',
+    website: document.getElementById('u-web').value,
+    dtm_min: +document.getElementById('u-dtm').value||null,
+    established: +document.getElementById('u-est').value||null,
+    tuition_min: +document.getElementById('u-tmin').value||null,
+    tuition_max: +document.getElementById('u-tmax').value||null,
+    tuition_currency: document.getElementById('u-currency').value,
+    programs_count: +document.getElementById('u-progs').value||0,
+    description: document.getElementById('u-desc').value,
+    field: document.getElementById('u-field').value,
+    is_featured: document.getElementById('u-featured').value === 'true',
+  };
+  try {
+    if (editingUniId) await api('PUT', `/api/admin/universities/${editingUniId}`, body);
+    else await api('POST', '/api/admin/universities', body);
+    closeModal('uniModal');
+    loadUniversities(currentUniPage);
+    showToast('✅', editingUniId ? 'University updated' : 'University added');
+  } catch(e) { showToast('❌', e.message); }
+}
+
+async function toggleUni(id, active) {
+  try {
+    await api('PUT', `/api/admin/universities/${id}`, { is_active: active });
+    loadUniversities(currentUniPage);
+    showToast('✅', active ? 'University shown' : 'University hidden');
+  } catch(e) { showToast('❌', e.message); }
+}
+
+// ── USERS ─────────────────────────────────────
+async function loadUsers(page=1) {
+  currentUserPage = page;
+  const q = document.getElementById('globalSearch').value;
+  try {
+    const d = await api('GET', `/api/admin/users?page=${page}&limit=50${q?`&q=${q}`:''}`);
+    document.getElementById('userCount').textContent = d.total;
+    const tbody = document.getElementById('userTableBody');
+    if (!d.data.length) { tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No users</td></tr>'; return; }
+    tbody.innerHTML = d.data.map(u => `
+      <tr>
+        <td style="font-weight:600">${u.name}</td>
+        <td style="color:var(--txt2)">${u.email}</td>
+        <td><span class="badge b-${u.role}">${u.role}</span></td>
+        <td><span class="badge ${u.is_active?'b-active':'b-inactive'}">${u.is_active?'Active':'Banned'}</span></td>
+        <td style="color:var(--txt3);font-size:.78rem">${u.last_login?new Date(u.last_login).toLocaleDateString():'Never'}</td>
+        <td style="color:var(--txt3);font-size:.78rem">${new Date(u.created_at).toLocaleDateString()}</td>
+        <td><button class="action-btn ${u.is_active?'del':''}" onclick="toggleUser('${u.id}',${!u.is_active})">${u.is_active?'Ban':'Unban'}</button></td>
+      </tr>`).join('');
+    renderPagination('userPagination', Math.ceil(d.total/50), page, loadUsers);
+  } catch(e) { showToast('❌', e.message); }
+}
+
+async function toggleUser(id, active) {
+  try {
+    await api('PATCH', `/api/admin/users/${id}`, { is_active: active });
+    loadUsers(currentUserPage);
+    showToast('✅', active ? 'User unbanned' : 'User banned');
+  } catch(e) { showToast('❌', e.message); }
+}
+
+// ── REVIEWS ───────────────────────────────────
+async function loadReviewsPreview() {
+  try {
+    const data = await api('GET', '/api/admin/reviews?approved=false');
+    const el = document.getElementById('pendingReviewsTable');
+    if (!data.length) { el.innerHTML = '<div class="table-empty">No pending reviews 🎉</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>University</th><th>Rating</th><th>Comment</th><th>Actions</th></tr></thead><tbody>
+      ${data.slice(0,5).map(r=>`
+        <tr>
+          <td>${r.uni_name}</td>
+          <td style="color:#fbbf24">${'★'.repeat(r.overall_rating)}</td>
+          <td style="color:var(--txt2);font-size:.82rem">${(r.body||'').slice(0,80)}...</td>
+          <td style="display:flex;gap:.4rem">
+            <button class="action-btn approve" onclick="approveReview('${r.id}',true)">Approve</button>
+            <button class="action-btn del"     onclick="approveReview('${r.id}',false)">Reject</button>
+          </td>
+        </tr>`).join('')}
+    </tbody></table>`;
+  } catch {}
+}
+
+async function loadReviews(approved=false) {
+  document.getElementById('reviewsTitle').textContent = approved ? 'Approved Reviews' : 'Pending Reviews';
+  document.getElementById('revPendingBtn').className  = `tb-btn${!approved?'':' sec'}`;
+  document.getElementById('revApprovedBtn').className = `tb-btn${approved?'':' sec'}`;
+  try {
+    const data = await api('GET', `/api/admin/reviews?approved=${approved}`);
+    const tbody = document.getElementById('reviewTableBody');
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No reviews</td></tr>'; return; }
+    tbody.innerHTML = data.map(r=>`
+      <tr>
+        <td style="font-weight:600">${r.uni_name}</td>
+        <td>${r.reviewer||'Anonymous'}</td>
+        <td style="color:#fbbf24">${'★'.repeat(r.overall_rating)} <span style="color:var(--txt3)">(${r.overall_rating}/5)</span></td>
+        <td style="color:var(--txt2);font-size:.82rem;max-width:200px">${(r.body||'').slice(0,100)}</td>
+        <td style="color:var(--txt3);font-size:.78rem">${new Date(r.created_at).toLocaleDateString()}</td>
+        <td style="display:flex;gap:.4rem">
+          ${!approved ? `<button class="action-btn approve" onclick="approveReview('${r.id}',true)">Approve</button>` : ''}
+          <button class="action-btn del" onclick="approveReview('${r.id}',false)">Reject</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) { showToast('❌', e.message); }
+}
+
+async function approveReview(id, approved) {
+  try {
+    await api('PATCH', `/api/admin/reviews/${id}`, { is_approved: approved });
+    loadReviewsPreview();
+    const isApprovedView = document.getElementById('revApprovedBtn').className.includes('tb-btn ');
+    loadReviews(!isApprovedView);
+    showToast('✅', approved ? 'Review approved' : 'Review rejected');
+    const badge = document.getElementById('pendingBadge');
+    if (!approved || badge) badge.textContent = Math.max(0, (+badge.textContent||1) - 1);
+  } catch(e) { showToast('❌', e.message); }
+}
+
+// ── ANALYTICS ────────────────────────────────
+async function loadAnalytics() {
+  try {
+    const an = await api('GET', '/api/admin/analytics');
+    renderChart('analyticsChart', an.daily, 'views');
+    const dtmEl = document.getElementById('dtmAnalytics');
+    dtmEl.innerHTML = an.topSearches.length ?
+      `<table><thead><tr><th>Subject</th><th>Avg Score</th><th>Searches</th></tr></thead><tbody>
+        ${an.topSearches.map(s=>`<tr><td>${s.subject}</td><td style="color:var(--acc)">${s.avg_score}</td><td>${s.searches}</td></tr>`).join('')}
+      </tbody></table>` : '<div class="table-empty">No data yet</div>';
+    const uniEl = document.getElementById('topUnisAnalytics');
+    uniEl.innerHTML = an.topUnis.length ?
+      `<table><thead><tr><th>University</th><th>Views (30d)</th></tr></thead><tbody>
+        ${an.topUnis.map((u,i)=>`<tr><td>${u.name}</td><td style="color:var(--acc)">${u.views}</td></tr>`).join('')}
+      </tbody></table>` : '<div class="table-empty">No data yet</div>';
+  } catch(e) { showToast('⚠️', 'Analytics unavailable'); }
+}
+
+// ── FEATURED ─────────────────────────────────
+async function addFeatured() {
+  const body = {
+    university_id: document.getElementById('fl-uid').value,
+    plan: document.getElementById('fl-plan').value,
+    price_usd: +document.getElementById('fl-price').value,
+    starts_at: document.getElementById('fl-start').value,
+    ends_at: document.getElementById('fl-end').value,
+  };
+  try {
+    await api('POST', '/api/admin/featured', body);
+    showToast('✅', 'Featured listing created');
+  } catch(e) { showToast('❌', e.message); }
+}
+
+// ── SETTINGS ─────────────────────────────────
+function saveSettings() {
+  const url = document.getElementById('settingsApiUrl').value;
+  const tok = document.getElementById('settingsToken').value;
+  localStorage.setItem('uf_admin_api', url);
+  if (tok) { token = tok; localStorage.setItem('uf_admin_token', tok); }
+  showToast('✅', 'Settings saved');
+}
+
+// ── SEARCH ────────────────────────────────────
+function globalSearchFn(q) {
+  const active = document.querySelector('.view.active')?.id.replace('view-','');
+  if (active === 'universities') loadUniversities(1);
+  if (active === 'users') loadUsers(1);
+}
+
+// ── MODAL HELPERS ────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
+
+// ── TOAST ─────────────────────────────────────
+let toastTimer;
+function showToast(ico, txt) {
+  clearTimeout(toastTimer);
+  document.getElementById('toastIco').textContent = ico;
+  document.getElementById('toastTxt').textContent = txt;
+  document.getElementById('toast').classList.add('show');
+  toastTimer = setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
